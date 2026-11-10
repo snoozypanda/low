@@ -1,0 +1,224 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color: #1f2933;
+  background: #0d2416;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', 'Noto Sans Ethiopic', system-ui, sans-serif;
+  background: #0d2416;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+:lang(am) {
+  font-family: 'Noto Sans Ethiopic', 'Inter', sans-serif;
+}
+
+::selection {
+  background: #43b02a;
+  color: white;
+}
+
+/* Scrollbars inside the phone and admin tables */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.thin-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.thin-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.thin-scroll::-webkit-scrollbar-thumb {
+  background: #d4dbd2;
+  border-radius: 99px;
+}
+.thin-scroll::-webkit-scrollbar-thumb:hover {
+  background: #b8c2b5;
+}
+
+/* Desktop presentation background */
+.showcase-bg {
+  background:
+    radial-gradient(circle at 12% 15%, rgba(67, 176, 42, 0.2), transparent 34rem),
+    radial-gradient(circle at 88% 82%, rgba(67, 176, 42, 0.14), transparent 30rem),
+    linear-gradient(145deg, #0a1f12 0%, #12341e 52%, #0b2415 100%);
+}
+
+.showcase-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.035) 1px, transparent 1px);
+  background-size: 46px 46px;
+}
+
+/* Phone shell */
+.phone-shell {
+  width: 390px;
+  height: 844px;
+  max-height: calc(100dvh - 40px);
+  border-radius: 46px;
+  padding: 9px;
+  background: linear-gradient(150deg, #203329 0%, #0d1712 70%);
+  box-shadow:
+    0 50px 120px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.13),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  position: relative;
+  flex: none;
+}
+
+.phone-screen {
+  width: 100%;
+  height: 100%;
+  border-radius: 38px;
+  overflow: hidden;
+  background: #f5f7f5;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+}
+
+.phone-notch {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 108px;
+  height: 25px;
+  border-radius: 999px;
+  background: #0b120e;
+  z-index: 80;
+  pointer-events: none;
+}
+
+@media (max-width: 860px) {
+  .phone-shell {
+    width: 100%;
+    height: 100dvh;
+    max-height: none;
+    border-radius: 0;
+    padding: 0;
+    background: #f5f7f5;
+    box-shadow: none;
+  }
+  .phone-screen {
+    border-radius: 0;
+  }
+  .phone-notch {
+    display: none;
+  }
+  .showcase-bg {
+    background: #f5f7f5;
+  }
+}
+
+/* Small design details */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+.logo-coin {
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.12));
+}
+
+.hero-card {
+  background:
+    radial-gradient(circle at 88% 8%, rgba(67, 176, 42, 0.2), transparent 150px),
+    linear-gradient(120deg, #ffffff 0%, #f7fbf5 60%, #eaf6e5 100%);
+}
+
+.login-panel {
+  background:
+    radial-gradient(circle at 85% 8%, rgba(255, 255, 255, 0.18), transparent 180px),
+    radial-gradient(circle at 10% 85%, rgba(255, 255, 255, 0.08), transparent 220px),
+    linear-gradient(160deg, #43b02a 0%, #2e7d1e 58%, #1f4d16 100%);
+}
+
+.admin-bg {
+  background: #f5f7f5;
+}
+
+.dashed-rule {
+  background-image: linear-gradient(90deg, #e6eae5 50%, transparent 50%);
+  background-size: 12px 1px;
+  background-repeat: repeat-x;
+}
+
+.amount-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+}
+
+/* Smooth page transitions */
+.page-enter {
+  animation: page-in 0.26s cubic-bezier(0.22, 0.9, 0.3, 1);
+}
+
+@keyframes page-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Focus rings */
+.focus-ring:focus-visible {
+  outline: 3px solid rgba(67, 176, 42, 0.45);
+  outline-offset: 2px;
+}
+
+/* Recharts */
+.recharts-cartesian-axis-tick-value {
+  font-size: 11px;
+  fill: #6b7280;
+}
+.recharts-tooltip-wrapper {
+  outline: none;
+}
+
+/* Print-friendly audit log */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+}

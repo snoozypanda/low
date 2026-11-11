@@ -148,7 +148,7 @@ export function AppShell() {
     const url = window.location.href
     try {
       if (navigator.share) {
-        await navigator.share({ title: auction?.title ?? 'How Low', text: 'Bid small. Win big.', url })
+        await navigator.share({ title: auction?.title ?? 'Bidora', text: 'Bid small. Win big.', url })
       } else {
         await navigator.clipboard.writeText(url)
         showToast({ tone: 'success', title: t('toastCopied') })

@@ -1,8 +1,9 @@
 import {
   ArrowRight,
-  BadgeCheck,
+  Check,
   ChevronRight,
   Clock3,
+  Eye,
   Info,
   Lock,
   ShieldCheck,
@@ -12,7 +13,7 @@ import {
   Users,
   Wallet,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { Countdown } from '../../components/Countdown'
 import { PaymentSheet } from '../../components/PaymentSheet'
@@ -51,11 +52,18 @@ export default function AuctionDetail() {
   const entries = useAuctionEntries(id)
   const bids = useStore((state) => state.bids)
   const payments = useStore((state) => state.payments)
+  const recordAuctionView = useStore((state) => state.recordAuctionView)
   const navigate = useNavigate()
   const { showToast } = useToast()
   const [tab, setTab] = useState<DetailTab>('overview')
   const [gallery, setGallery] = useState(0)
   const [payOpen, setPayOpen] = useState(false)
+
+  useEffect(() => {
+    if (auction?.id) {
+      recordAuctionView(auction.id)
+    }
+  }, [auction?.id, recordAuctionView])
 
   if (!auction) {
     return (
@@ -70,7 +78,10 @@ export default function AuctionDetail() {
   const closed = ['closed', 'void', 'cancelled'].includes(auction.status)
   const myPaidEntries = entries.filter((entry) => paymentById.get(entry.paymentId)?.status === 'success')
   const unbidEntry = myPaidEntries.find((entry) => entry.status === 'active' && !entry.bidId)
-  const limitReached = myPaidEntries.length >= auction.maxEntriesPerUser
+  const unbidEntries = myPaidEntries.filter((entry) => entry.status === 'active' && !entry.bidId)
+  const hasPaid = myPaidEntries.length > 0
+  const bidsPlaced = myPaidEntries.length - unbidEntries.length
+  const allBidsPlaced = hasPaid && unbidEntries.length === 0
   const progress = stats?.progressPct ?? 0
   const mine = entries.filter((e) => e.bidId)
 
@@ -84,6 +95,9 @@ export default function AuctionDetail() {
             <div className="flex flex-wrap items-center gap-1.5">
               <StatusBadge status={auction.status} />
               <Badge tone="grey">{auction.category}</Badge>
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/5 px-2 py-0.5 text-[9px] font-bold text-ink-muted">
+                <Eye className="h-3 w-3 text-ink-soft" /> {(auction.views ?? 0).toLocaleString()} {t('views')}
+              </span>
               {live ? (
                 <span className="inline-flex items-center gap-1 text-[8.5px] font-bold uppercase tracking-wide text-accent">
                   <Clock3 className="h-2.5 w-2.5" /> {t('closingSoon')}
@@ -107,7 +121,7 @@ export default function AuctionDetail() {
             sub={`/ ${auction.minEntries.toLocaleString('en-US')}`}
           />
           <Metric label={t('participants')} value={`${stats?.participants ?? 0}`} sub={t('bidders')} />
-          <Metric label={t('entry')} value={formatETB(auction.entryFee)} sub={t('perEntry')} accent />
+          <Metric label={t('entry')} value={formatETB(auction.entryFee)} sub={t('onePaymentThreeBids')} accent />
         </div>
 
         <Card className="mt-2.5 overflow-hidden border-[#DDEBD7]">
@@ -202,16 +216,15 @@ export default function AuctionDetail() {
                 {language === 'am' ? auction.descriptionAm : auction.description}
               </p>
               <div className="mt-3 grid grid-cols-2 gap-2">
-                <Spec label={t('bidRange')} value={`ETB ${auction.bidMin.toFixed(2)} – ${auction.bidMax.toFixed(2)}`} />
+                <Spec label={t('minBid')} value={`ETB ${auction.bidMin.toFixed(2)} (${t('noMax')})`} />
                 <Spec label={t('step')} value={`ETB ${auction.bidStep.toFixed(2)}`} />
-                <Spec label={t('maxEntries')} value={`${auction.maxEntriesPerUser} / user`} />
+                <Spec label={t('maxEntries')} value={t('onePaymentThreeBids')} />
                 <Spec label={t('minEntries')} value={auction.minEntries.toLocaleString('en-US')} />
               </div>
             </Card>
 
             <div className="grid grid-cols-3 gap-2">
               <Feature icon={<Ticket className="h-4 w-4" />} text={t('oneEntryPerBid')} />
-              <Feature icon={<BadgeCheck className="h-4 w-4" />} text={t('verifiedWinner')} />
               <Feature icon={<Wallet className="h-4 w-4" />} text={t('refundNotice')} />
             </div>
 
@@ -298,11 +311,11 @@ export default function AuctionDetail() {
                 rightIcon={<ArrowRight className="h-4 w-4" />}
                 onClick={() => navigate(`/auction/${auction.id}/bid?entry=${unbidEntry.id}`)}
               >
-                {t('submitYourBid')}
+                {bidsPlaced > 0 ? t('submitNextBid', { placed: bidsPlaced }) : t('submitYourBid')}
               </Button>
-            ) : limitReached ? (
-              <Button size="lg" className="flex-1" disabled>
-                {t('entryLimitReached')}
+            ) : allBidsPlaced ? (
+              <Button size="lg" className="flex-1" disabled leftIcon={<Check className="h-4 w-4" />}>
+                {t('allBidsPlaced')}
               </Button>
             ) : (
               <div className="flex flex-1 gap-1.5">
@@ -312,7 +325,7 @@ export default function AuctionDetail() {
                   leftIcon={<Wallet className="h-4 w-4" />}
                   onClick={() => setPayOpen(true)}
                 >
-                  {t('payEntryFee')}
+                  {t('payEntryFee')} ({t('onePaymentThreeBids')})
                 </Button>
               </div>
             )}

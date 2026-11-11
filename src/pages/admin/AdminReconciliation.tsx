@@ -569,7 +569,7 @@ export default function AdminReconciliation() {
             to="/admin/fulfilment"
             className="focus-ring flex items-center justify-between rounded-xl border border-line px-3 py-2.5 text-[10.5px] font-bold text-ink-muted hover:border-brand/40 hover:text-brand-dark"
           >
-            <span className="inline-flex items-center gap-2"><BadgeCheck className="h-3.5 w-3.5" /> Verify the next winner</span>
+            <span className="inline-flex items-center gap-2"><BadgeCheck className="h-3.5 w-3.5" /> Confirm the next winner</span>
             <ArrowRight className="h-3 w-3" />
           </Link>
           <div className="rounded-xl border border-[#CFE3C6] bg-brand-tint/60 px-3 py-2.5">

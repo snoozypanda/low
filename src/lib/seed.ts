@@ -374,8 +374,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.phone,
       retailValue: 20000,
       entryFee: 20,
+      views: 3420,
       bidMin: 0.01,
-      bidMax: 500,
       bidStep: 0.01,
       minEntries: 1000,
       maxEntriesPerUser: 3,
@@ -397,8 +397,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.laptop,
       retailValue: 65000,
       entryFee: 15,
+      views: 2890,
       bidMin: 0.01,
-      bidMax: 500,
       bidStep: 0.01,
       minEntries: 800,
       maxEntriesPerUser: 3,
@@ -420,8 +420,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.tv,
       retailValue: 28000,
       entryFee: 10,
+      views: 1940,
       bidMin: 0.01,
-      bidMax: 500,
       bidStep: 0.01,
       minEntries: 500,
       maxEntriesPerUser: 3,
@@ -443,8 +443,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.earbuds,
       retailValue: 4500,
       entryFee: 5,
+      views: 860,
       bidMin: 0.01,
-      bidMax: 300,
       bidStep: 0.01,
       minEntries: 400,
       maxEntriesPerUser: 3,
@@ -466,8 +466,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.espresso,
       retailValue: 12000,
       entryFee: 10,
+      views: 650,
       bidMin: 0.01,
-      bidMax: 500,
       bidStep: 0.01,
       minEntries: 300,
       maxEntriesPerUser: 3,
@@ -481,16 +481,16 @@ export function createSeedState(): DemoState {
       title: 'Shopping Gift Voucher',
       titleAm: 'የግዢ ስጦታ ቫውቸር',
       description:
-        'A ETB 5,000 gift voucher valid at partner electronics and home stores across Addis Ababa. Delivered digitally after verification.',
+        'A ETB 5,000 gift voucher valid at partner electronics and home stores across Addis Ababa. Delivered digitally after the win.',
       descriptionAm:
-        'በአዲስ አበባ በሚገኙ የኤሌክትሮኒክስ እና የቤት ዕቃ መሸጫዎች የሚሰራ የ ETB 5,000 ስጦታ ቫውቸር። ከማረጋገጫ በኋላ በዲጂታል መንገድ ይደርሳል።',
+        'በአዲስ አበባ በሚገኙ የኤሌክትሮኒክስ እና የቤት ዕቃ መሸጫዎች የሚሰራ የ ETB 5,000 ስጦታ ቫውቸር። ከአሸናፊነት በኋላ በዲጂታል መንገድ ይደርሳል።',
       category: 'Vouchers',
       image: IMG.voucher[0],
       gallery: IMG.voucher,
       retailValue: 5000,
       entryFee: 5,
+      views: 1280,
       bidMin: 0.01,
-      bidMax: 100,
       bidStep: 0.01,
       minEntries: 5,
       maxEntriesPerUser: 3,
@@ -514,8 +514,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.watch,
       retailValue: 7000,
       entryFee: 5,
+      views: 940,
       bidMin: 0.01,
-      bidMax: 100,
       bidStep: 0.01,
       minEntries: 4,
       maxEntriesPerUser: 3,
@@ -539,8 +539,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.coffee,
       retailValue: 12000,
       entryFee: 10,
+      views: 710,
       bidMin: 0.01,
-      bidMax: 500,
       bidStep: 0.01,
       minEntries: 200,
       maxEntriesPerUser: 3,
@@ -564,8 +564,8 @@ export function createSeedState(): DemoState {
       gallery: IMG.speaker,
       retailValue: 3500,
       entryFee: 5,
+      views: 1150,
       bidMin: 0.01,
-      bidMax: 100,
       bidStep: 0.01,
       minEntries: 10,
       maxEntriesPerUser: 3,
@@ -636,7 +636,7 @@ export function createSeedState(): DemoState {
         const amount =
           i < preset.length
             ? preset[i]
-            : round2(Math.min(auction.bidMax, 0.13 + rng() * (auction.bidMax - 0.13)))
+            : round2(0.13 + rng() * 10)
         const bid = addBid(auction, entry, amount, createdAt + randInt(30, 900) * 1000)
         if (i < 4) {
           addAudit({
@@ -757,7 +757,7 @@ export function createSeedState(): DemoState {
   const laptop = byId('laptop')
   const tv = byId('tv')
 
-  // Demo user's active entry on the smartphone.
+  // Demo user's active entry on the smartphone (1 payment unlocks 3 entries/bids).
   {
     const paidAt = now - 1 * DAY
     const payment = addPayment({
@@ -768,13 +768,25 @@ export function createSeedState(): DemoState {
       confirmedAt: paidAt + 14_000,
     })
     payment.amount = smartphone.entryFee
-    const entry = addEntry({
+    const entry1 = addEntry({
       auctionId: smartphone.id,
       user: demoUser,
       payment,
       createdAt: paidAt + 16_000,
     })
-    const bid = addBid(smartphone, entry, 0.08, paidAt + 3 * MIN)
+    addEntry({
+      auctionId: smartphone.id,
+      user: demoUser,
+      payment,
+      createdAt: paidAt + 16_100,
+    })
+    addEntry({
+      auctionId: smartphone.id,
+      user: demoUser,
+      payment,
+      createdAt: paidAt + 16_200,
+    })
+    const bid = addBid(smartphone, entry1, 0.08, paidAt + 3 * MIN)
     addAudit({
       auctionId: smartphone.id,
       type: 'bid.locked',
@@ -786,10 +798,10 @@ export function createSeedState(): DemoState {
     addNotification({
       userId: demoUser.id,
       kind: 'entry',
-      title: 'Entry confirmed',
-      titleAm: 'ግቤትዎ ተረጋግጧል',
-      body: `Your ETB ${smartphone.entryFee} entry for ${smartphone.title} is confirmed. Submit your sealed bid before the auction closes.`,
-      bodyAm: `ለ${smartphone.titleAm} የፈጸሙት ETB ${smartphone.entryFee} ግቤት ተረጋግጧል። ጨረታው ከመዘጋቱ በፊት ሚስጥራዊ ጨረታዎን ያስገቡ።`,
+      title: 'Entry confirmed (3 bids unlocked)',
+      titleAm: 'ግቤትዎ ተረጋግጧል (3 ጨረታዎች ተፈቅደዋል)',
+      body: `Your ETB ${smartphone.entryFee} entry fee for ${smartphone.title} is confirmed. 3 bids unlocked — place your sealed bids before the auction closes.`,
+      bodyAm: `ለ${smartphone.titleAm} የፈጸሙት ETB ${smartphone.entryFee} ግቤት ተረጋግጧል። 3 ጨረታዎች ተፈቅደዋል — ጨረታው ከመዘጋቱ በፊት ሚስጥራዊ ጨረታዎችዎን ያስገቡ።`,
       createdAt: paidAt + 20_000,
       read: true,
       sms: true,
@@ -871,7 +883,6 @@ export function createSeedState(): DemoState {
       entryId: c.id,
       userId: demoUser.id,
       amount: 0.07,
-      verification: 'pending',
       fulfilment: 'none',
       deadlineAt: iso(closedAt + 7 * DAY),
       createdAt: iso(closedAt + 2 * MIN),
@@ -899,8 +910,8 @@ export function createSeedState(): DemoState {
       kind: 'won',
       title: 'You won the gift voucher!',
       titleAm: 'የስጦታ ቫውቸሩን አሸንፈዋል!',
-      body: 'Congratulations! Your unique bid of ETB 0.07 won the ETB 5,000 shopping gift voucher. Verify your ID within 7 days to claim it.',
-      bodyAm: 'እንኳን ደስ አለዎት! የ ETB 0.07 ልዩ ጨረታዎ የ ETB 5,000 የግዢ ስጦታ ቫውቸርን አሸንፏል። ለመረከብ በ7 ቀናት ውስጥ መታወቂያዎን ያረጋግጡ።',
+      body: 'Congratulations! Your unique bid of ETB 0.07 won the ETB 5,000 shopping gift voucher. Choose delivery or pickup within 7 days to claim it.',
+      bodyAm: 'እንኳን ደስ አለዎት! የ ETB 0.07 ልዩ ጨረታዎ የ ETB 5,000 የግዢ ስጦታ ቫውቸርን አሸንፏል። ለመረከብ በ7 ቀናት ውስጥ ማድረስ ወይም መረከብ ይምረጡ።',
       createdAt: closedAt + 3 * MIN,
       sms: true,
       auctionId: auction.id,
@@ -1155,7 +1166,6 @@ export function createSeedState(): DemoState {
       entryId: winnerEntry.id,
       userId: winnerUser.id,
       amount: 0.03,
-      verification: 'verified',
       fulfilment: 'dispatched',
       method: 'delivery',
       address: 'Bole Road, Woreda 03, Addis Ababa',
@@ -1179,13 +1189,6 @@ export function createSeedState(): DemoState {
         'Grouped 34 bids. Duplicates at 0.01 and 0.02 were eliminated. Lowest unique bid = ETB 0.03.',
       timestamp: closedAt + 60_000,
       meta: { winningAmount: 0.03 },
-    })
-    addAudit({
-      auctionId: auction.id,
-      type: 'identity.verified',
-      actor: 'Admin · Sara M.',
-      message: `Winner ${winnerUser.name} verified with a national ID.`,
-      timestamp: closedAt + 1 * DAY,
     })
     addAudit({
       auctionId: auction.id,
@@ -1230,10 +1233,10 @@ export function createSeedState(): DemoState {
   addNotification({
     userId: demoUser.id,
     kind: 'system',
-    title: 'Welcome to How Low',
-    titleAm: 'ወደ How Low እንኳን ደህና መጡ',
-    body: 'Bid small, win big. Pay a small entry fee, submit one sealed bid, and the lowest unique bid wins the product.',
-    bodyAm: 'ትንሽ ይጫረቱ፣ በትልቁ ያሸንፉ። ትንሽ የመግቢያ ክፍያ ይክፈሉ፣ አንድ ሚስጥራዊ ጨረታ ያስገቡ፣ ዝቅተኛው ልዩ ጨረታ ሽልማቱን ያሸንፋል።',
+    title: 'Welcome to Bidora',
+    titleAm: 'ወደ Bidora እንኳን ደህና መጡ',
+    body: 'Bid small, win big. Pay a small entry fee, submit your sealed bids, and the lowest unique bid wins the product.',
+    bodyAm: 'ትንሽ ይጫረቱ፣ በትልቁ ያሸንፉ። ትንሽ የመግቢያ ክፍያ ይክፈሉ፣ ሚስጥራዊ ጨረታዎችዎን ያስገቡ፣ ዝቅተኛው ልዩ ጨረታ ሽልማቱን ያሸንፋል።',
     createdAt: now - 3 * DAY,
     read: true,
     sms: false,
@@ -1243,8 +1246,8 @@ export function createSeedState(): DemoState {
     kind: 'fulfilment',
     title: 'Your prize is on the way',
     titleAm: 'ሽልማትዎ በመንገድ ላይ ነው',
-    body: 'Your gift voucher is ready for verification. Choose delivery or pickup to complete fulfilment.',
-    bodyAm: 'የስጦታ ቫውቸርዎ ለማረጋገጫ ዝግጁ ነው። ማድረስ ወይም መረከብ በመምረጥ ሂደቱን ያጠናቅቁ።',
+    body: 'Your gift voucher is ready. Choose delivery or pickup to complete fulfilment.',
+    bodyAm: 'የስጦታ ቫውቸርዎ ዝግጁ ነው። ማድረስ ወይም መረከብ በመምረጥ ሂደቱን ያጠናቅቁ።',
     createdAt: now - 1 * DAY,
     sms: false,
     auctionId: 'voucher',

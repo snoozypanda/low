@@ -1,7 +1,5 @@
 import {
-  AlertTriangle,
   ArrowRight,
-  BadgeCheck,
   CalendarClock,
   CheckCircle2,
   ClipboardCheck,
@@ -13,12 +11,11 @@ import {
   ShieldCheck,
   Truck,
   Trophy,
-  UserRoundCheck,
   XCircle,
 } from 'lucide-react'
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertBox, Badge, Button, Card, Input, Modal, StatusBadge, Tabs, cn } from '../../components/ui'
+import { AlertBox, Badge, Button, Card, Input, Modal, Tabs, cn } from '../../components/ui'
 import { useToast } from '../../components/Toast'
 import { formatBid, formatDate, formatDateTime, formatETB, formatNumber, timeAgo } from '../../lib/format'
 import { maskPhone } from '../../lib/engine'
@@ -36,18 +33,16 @@ import {
   Th,
 } from './components'
 
-type Tab = 'all' | 'awaiting' | 'verified' | 'dispatched' | 'delivered' | 'failed'
+type Tab = 'all' | 'awaiting' | 'ready' | 'dispatched' | 'delivered'
 
 const fulfilmentLabel: Record<string, string> = {
   none: 'Not started',
-  verified: 'Ready to dispatch',
   dispatched: 'Dispatched',
   delivered: 'Delivered',
 }
 
 export default function AdminFulfilment() {
   const state = useStore((s) => s)
-  const adminVerifyWinner = useStore((s) => s.adminVerifyWinner)
   const advanceFulfilment = useStore((s) => s.advanceFulfilment)
   const failWinnerAndOfferNext = useStore((s) => s.failWinnerAndOfferNext)
   const { showToast } = useToast()
@@ -70,21 +65,20 @@ export default function AdminFulfilment() {
         return { winner, auction, user, entry, bid }
       })
       .sort((a, b) => {
-        const pendingA = a.winner.verification === 'pending' ? 0 : 1
-        const pendingB = b.winner.verification === 'pending' ? 0 : 1
+        const pendingA = isUnclaimed(a.winner) ? 0 : 1
+        const pendingB = isUnclaimed(b.winner) ? 0 : 1
         if (pendingA !== pendingB) return pendingA - pendingB
         return new Date(a.winner.deadlineAt).getTime() - new Date(b.winner.deadlineAt).getTime()
       })
 
     return {
       rows,
-      awaiting: state.winners.filter((w) => w.verification === 'pending'),
-      failed: state.winners.filter((w) => w.verification === 'failed'),
-      verified: state.winners.filter((w) => w.verification === 'verified' && w.fulfilment === 'verified'),
+      awaiting: state.winners.filter(isUnclaimed),
+      ready: state.winners.filter((w) => w.fulfilment === 'none' && Boolean(w.method)),
       dispatched: state.winners.filter((w) => w.fulfilment === 'dispatched'),
       delivered: state.winners.filter((w) => w.fulfilment === 'delivered'),
       overdue: state.winners.filter(
-        (w) => w.verification === 'pending' && new Date(w.deadlineAt).getTime() < Date.now(),
+        (w) => isUnclaimed(w) && new Date(w.deadlineAt).getTime() < Date.now(),
       ),
       prizeValue: state.winners.reduce((sum, w) => {
         const auction = auctionById.get(w.auctionId)
@@ -94,9 +88,8 @@ export default function AdminFulfilment() {
   }, [state])
 
   const filtered = data.rows.filter(({ winner, user, auction }) => {
-    if (tab === 'awaiting' && winner.verification !== 'pending') return false
-    if (tab === 'failed' && winner.verification !== 'failed') return false
-    if (tab === 'verified' && !(winner.verification === 'verified' && winner.fulfilment === 'verified')) return false
+    if (tab === 'awaiting' && !isUnclaimed(winner)) return false
+    if (tab === 'ready' && !(winner.fulfilment === 'none' && winner.method)) return false
     if (tab === 'dispatched' && winner.fulfilment !== 'dispatched') return false
     if (tab === 'delivered' && winner.fulfilment !== 'delivered') return false
     const q = query.trim().toLowerCase()
@@ -107,15 +100,6 @@ export default function AdminFulfilment() {
 
   const selected = data.rows.find((row) => row.winner.auctionId === detailId)
   const failTarget = data.rows.find((row) => row.winner.auctionId === failId)
-
-  const verify = (winner: WinnerRecord) => {
-    const result = adminVerifyWinner(winner.auctionId)
-    showToast({
-      tone: result.ok ? 'success' : 'error',
-      title: result.ok ? 'Winner verified' : 'Could not verify',
-      message: result.ok ? `${formatETB(winner.amount, 2)} win is now ready for fulfilment.` : result.error,
-    })
-  }
 
   const advance = (winner: WinnerRecord) => {
     const result = advanceFulfilment(winner.auctionId)
@@ -134,7 +118,7 @@ export default function AdminFulfilment() {
       title: result.ok ? 'Prize offered to the next winner' : 'No next winner',
       message: result.ok
         ? result.nextAmount
-          ? `New winning bid ETB ${result.nextAmount.toFixed(2)}. Verify the new winner.`
+          ? `New winning bid ETB ${result.nextAmount.toFixed(2)}.`
           : 'The next eligible bid was offered the prize.'
         : result.error,
     })
@@ -146,7 +130,7 @@ export default function AdminFulfilment() {
       <AdminPageHeader
         eyebrow="Prize operations"
         title="Fulfilment"
-        description="Verify winners, track dispatch and delivery, and reoffer a prize when a winner cannot complete identity checks."
+        description="Track dispatch and delivery, and reoffer a prize when a winner does not claim it in time."
         actions={
           <>
             <Link
@@ -156,14 +140,13 @@ export default function AdminFulfilment() {
               <ShieldCheck className="h-3.5 w-3.5" /> Audit trail
             </Link>
             <ExportButton
-              filename="howlow-fulfilment.csv"
+              filename="bidora-fulfilment.csv"
               rows={filtered.map(({ winner, auction, user, bid }) => ({
                 auction: auction?.title ?? winner.auctionId,
                 winner: user?.name ?? '',
                 phone: user?.phone ?? '',
                 winning_bid_etb: winner.amount,
                 retail_value_etb: auction?.retailValue ?? '',
-                verification: winner.verification,
                 fulfilment: winner.fulfilment,
                 method: winner.method ?? '',
                 address: winner.address ?? '',
@@ -179,15 +162,15 @@ export default function AdminFulfilment() {
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <AdminStat
-          label="Awaiting identity"
+          label="Awaiting claim"
           value={formatNumber(data.awaiting.length)}
-          icon={UserRoundCheck}
+          icon={Clock3}
           tone={data.overdue.length ? 'red' : 'amber'}
           sub={`${data.overdue.length} past the 7-day deadline`}
         />
         <AdminStat
           label="Ready to dispatch"
-          value={formatNumber(data.verified.length)}
+          value={formatNumber(data.ready.length)}
           icon={ClipboardCheck}
           tone="blue"
           sub={`${data.dispatched.length} already dispatched`}
@@ -200,11 +183,11 @@ export default function AdminFulfilment() {
           sub={`${formatETB(data.prizeValue)} total retail value in scope`}
         />
         <AdminStat
-          label="Failed / reoffered"
-          value={formatNumber(data.failed.length)}
-          icon={AlertTriangle}
-          tone={data.failed.length ? 'purple' : 'green'}
-          sub="Prize reassigned to the next unique bid"
+          label="Total winners"
+          value={formatNumber(data.rows.length)}
+          icon={Trophy}
+          tone="purple"
+          sub="Across all closed auctions"
         />
       </div>
 
@@ -213,11 +196,10 @@ export default function AdminFulfilment() {
           <Tabs
             items={[
               { value: 'all', label: 'All', count: data.rows.length },
-              { value: 'awaiting', label: 'Awaiting ID', count: data.awaiting.length },
-              { value: 'verified', label: 'Ready', count: data.verified.length },
+              { value: 'awaiting', label: 'Awaiting claim', count: data.awaiting.length },
+              { value: 'ready', label: 'Ready', count: data.ready.length },
               { value: 'dispatched', label: 'Dispatched', count: data.dispatched.length },
               { value: 'delivered', label: 'Delivered', count: data.delivered.length },
-              { value: 'failed', label: 'Failed', count: data.failed.length },
             ]}
             value={tab}
             onChange={(value) => setTab(value as Tab)}
@@ -243,7 +225,6 @@ export default function AdminFulfilment() {
                 <Th>Prize</Th>
                 <Th>Winner</Th>
                 <Th>Winning bid</Th>
-                <Th>Identity</Th>
                 <Th>Fulfilment</Th>
                 <Th>Method</Th>
                 <Th>Deadline</Th>
@@ -252,10 +233,10 @@ export default function AdminFulfilment() {
             </thead>
             <tbody>
               {filtered.length === 0 ? (
-                <EmptyTableRow colSpan={8}>No winners match this view.</EmptyTableRow>
+                <EmptyTableRow colSpan={7}>No winners match this view.</EmptyTableRow>
               ) : (
                 filtered.map(({ winner, auction, user, bid }) => {
-                  const overdue = winner.verification === 'pending' && new Date(winner.deadlineAt).getTime() < Date.now()
+                  const overdue = isUnclaimed(winner) && new Date(winner.deadlineAt).getTime() < Date.now()
                   return (
                     <tr key={winner.auctionId} className="transition hover:bg-brand-soft/30">
                       <Td>
@@ -273,7 +254,6 @@ export default function AdminFulfilment() {
                         <span className="block font-bold amount-tabular">{formatETB(winner.amount, 2)}</span>
                         <span className="block text-[8.5px] text-ink-soft">of {formatETB(auction?.retailValue ?? 0)} retail</span>
                       </Td>
-                      <Td><StatusBadge status={winner.verification} /></Td>
                       <Td>
                         <Badge
                           tone={
@@ -281,7 +261,7 @@ export default function AdminFulfilment() {
                               ? 'green'
                               : winner.fulfilment === 'dispatched'
                                 ? 'blue'
-                                : winner.fulfilment === 'verified'
+                                : winner.method
                                   ? 'amber'
                                   : 'grey'
                           }
@@ -305,20 +285,15 @@ export default function AdminFulfilment() {
                       </Td>
                       <Td align="right">
                         <div className="flex items-center justify-end gap-1">
-                          {winner.verification === 'pending' ? (
-                            <Button size="sm" className="h-7 px-2.5 text-[10px]" onClick={() => verify(winner)}>
-                              Verify ID
-                            </Button>
-                          ) : null}
-                          {winner.verification === 'verified' && winner.fulfilment !== 'delivered' ? (
+                          {winner.fulfilment !== 'delivered' ? (
                             <Button size="sm" variant="secondary" className="h-7 px-2.5 text-[10px]" onClick={() => advance(winner)}>
-                              {winner.fulfilment === 'verified' ? 'Dispatch' : 'Mark delivered'}
+                              {winner.fulfilment === 'none' ? 'Dispatch' : 'Mark delivered'}
                             </Button>
                           ) : null}
-                          {winner.verification !== 'failed' && winner.fulfilment !== 'delivered' ? (
+                          {winner.fulfilment === 'none' ? (
                             <button
                               type="button"
-                              title="Fail verification and offer the next unique bid"
+                              title="Winner did not claim: offer the next unique bid"
                               onClick={() => setFailId(winner.auctionId)}
                               className="focus-ring flex h-7 w-7 items-center justify-center rounded-lg border border-line text-ink-muted hover:border-accent/30 hover:text-accent"
                             >
@@ -360,7 +335,6 @@ export default function AdminFulfilment() {
         <AdminCard title="Fulfilment workflow" bodyClassName="p-4">
           <div className="space-y-3">
             {[
-              { icon: UserRoundCheck, label: 'Identity verified', body: 'Name and ID number checked against the winner record.' },
               { icon: ClipboardCheck, label: 'Method confirmed', body: 'Winner chooses delivery or a pickup branch.' },
               { icon: Truck, label: 'Dispatched', body: 'Courier handoff recorded and the winner is notified by SMS.' },
               { icon: PackageCheck, label: 'Delivered', body: 'Prize is handed over and the record is closed.' },
@@ -387,13 +361,13 @@ export default function AdminFulfilment() {
               <CalendarClock className="h-3 w-3" /> Seven-day window
             </p>
             <p className="mt-1 text-[10px] leading-relaxed text-[#8A5200]">
-              A winner has seven days to verify their identity and choose a fulfilment method. After that the operations
+              A winner has seven days to choose a fulfilment method. After that the operations
               desk can fail the record and offer the prize to the next lowest unique bid.
             </p>
           </div>
           <div className="mt-3 space-y-2">
             <div className="flex items-center justify-between rounded-lg border border-line px-2.5 py-2 text-[10px]">
-              <span className="text-ink-muted">Winners awaiting ID</span>
+              <span className="text-ink-muted">Winners awaiting claim</span>
               <span className="font-bold text-ink">{data.awaiting.length}</span>
             </div>
             <div className="flex items-center justify-between rounded-lg border border-line px-2.5 py-2 text-[10px]">
@@ -409,10 +383,9 @@ export default function AdminFulfilment() {
 
         <AdminCard title="Requirement checks" bodyClassName="divide-y divide-line">
           {[
-            ['Identity before fulfilment', 'A winner cannot choose delivery or pickup until identity is verified.'],
-            ['One prize, one winner', 'Failing a winner excludes their entry and reoffers the next unique bid.'],
+            ['One prize, one winner', 'Reoffering a prize excludes their entry and reoffers the next unique bid.'],
             ['Void if nobody remains', 'If no further unique bid exists, the auction becomes void and refunds are queued.'],
-            ['Every step audited', 'Verification, dispatch and reassignment write immutable audit events.'],
+            ['Every step audited', 'Dispatch and reassignment write immutable audit events.'],
           ].map(([title, body]) => (
             <div key={title} className="flex items-start gap-2 px-4 py-2.5">
               <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 flex-none text-brand-dark" />
@@ -435,14 +408,9 @@ export default function AdminFulfilment() {
           selected ? (
             <>
               <Button variant="ghost" size="sm" onClick={() => setDetailId(null)}>Close</Button>
-              {selected.winner.verification === 'pending' ? (
-                <Button size="sm" onClick={() => verify(selected.winner)} leftIcon={<BadgeCheck className="h-3.5 w-3.5" />}>
-                  Verify identity
-                </Button>
-              ) : null}
-              {selected.winner.verification === 'verified' && selected.winner.fulfilment !== 'delivered' ? (
+              {selected.winner.fulfilment !== 'delivered' ? (
                 <Button size="sm" onClick={() => advance(selected.winner)} leftIcon={<Truck className="h-3.5 w-3.5" />}>
-                  {selected.winner.fulfilment === 'verified' ? 'Mark dispatched' : 'Mark delivered'}
+                  {selected.winner.fulfilment === 'none' ? 'Mark dispatched' : 'Mark delivered'}
                 </Button>
               ) : null}
             </>
@@ -458,7 +426,6 @@ export default function AdminFulfilment() {
                 <p className="mt-0.5 text-[9px] text-ink-muted">Retail value {formatETB(selected.auction?.retailValue ?? 0)}</p>
               </div>
               <div className="flex flex-col items-end gap-1">
-                <StatusBadge status={selected.winner.verification} />
                 <Badge tone="grey">{fulfilmentLabel[selected.winner.fulfilment]}</Badge>
               </div>
             </div>
@@ -506,8 +473,7 @@ export default function AdminFulfilment() {
               <div className="space-y-2">
                 {[
                   { label: 'Winner declared', done: true, icon: Trophy },
-                  { label: 'Identity verified', done: selected.winner.verification === 'verified', icon: ShieldCheck },
-                  { label: 'Fulfilment started', done: ['verified', 'dispatched', 'delivered'].includes(selected.winner.fulfilment), icon: ClipboardCheck },
+                  { label: 'Method chosen', done: Boolean(selected.winner.method), icon: ClipboardCheck },
                   { label: 'Dispatched', done: ['dispatched', 'delivered'].includes(selected.winner.fulfilment), icon: Truck },
                   { label: 'Delivered', done: selected.winner.fulfilment === 'delivered', icon: PackageCheck },
                 ].map((step) => {
@@ -531,9 +497,9 @@ export default function AdminFulfilment() {
               </div>
             </div>
 
-            {selected.winner.verification === 'pending' && new Date(selected.winner.deadlineAt).getTime() < Date.now() ? (
+            {isUnclaimed(selected.winner) && new Date(selected.winner.deadlineAt).getTime() < Date.now() ? (
               <AlertBox tone="warning" title="Deadline has passed">
-                The win can be failed and offered to the next lowest unique bid.
+                The prize can be offered to the next lowest unique bid.
               </AlertBox>
             ) : null}
           </div>
@@ -543,12 +509,12 @@ export default function AdminFulfilment() {
       <Modal
         open={Boolean(failTarget)}
         onClose={() => setFailId(null)}
-        title="Fail verification and offer the next bid?"
+        title="Offer the prize to the next bid?"
         description="This excludes the current winner and searches for the next lowest unique bid."
         footer={
           <>
             <Button variant="ghost" size="sm" onClick={() => setFailId(null)}>Cancel</Button>
-            <Button variant="danger" size="sm" onClick={failAndOffer}>Fail & offer next</Button>
+            <Button variant="danger" size="sm" onClick={failAndOffer}>Offer to next</Button>
           </>
         }
       >
@@ -573,6 +539,10 @@ export default function AdminFulfilment() {
       </Modal>
     </div>
   )
+}
+
+function isUnclaimed(winner: WinnerRecord) {
+  return winner.fulfilment === 'none' && !winner.method
 }
 
 function Detail({ label, value }: { label: string; value: ReactNode }) {

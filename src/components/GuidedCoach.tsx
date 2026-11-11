@@ -46,7 +46,6 @@ export function GuidedCoach() {
   const submitBid = useStore((state) => state.submitBid)
   const reachMinimum = useStore((state) => state.reachMinimum)
   const fastForwardAuction = useStore((state) => state.fastForwardAuction)
-  const verifyWinnerIdentity = useStore((state) => state.verifyWinnerIdentity)
   const setWinnerFulfilmentMethod = useStore((state) => state.setWinnerFulfilmentMethod)
   const processRefunds = useStore((state) => state.processRefunds)
   const resetDemo = useStore((state) => state.resetDemo)
@@ -182,22 +181,12 @@ export function GuidedCoach() {
       })
       return
     }
-    if (winner.verification !== 'verified') {
-      const verified = verifyWinnerIdentity('tv', {
-        name: user?.name ?? 'Selam Tesfaye',
-        idNumber: '123456789012',
-      })
-      if (!verified.ok) {
-        showToast({ tone: 'error', title: 'Verification failed', message: verified.error })
-        return
-      }
-    }
     if (!winner.method) {
       const method = setWinnerFulfilmentMethod(
         'tv',
         'pickup',
         undefined,
-        'Bole, Addis Ababa — How Low pickup desk',
+        'Bole, Addis Ababa — Bidora pickup desk',
       )
       if (!method.ok) {
         showToast({ tone: 'error', title: 'Fulfilment not saved', message: method.error })
@@ -209,7 +198,7 @@ export function GuidedCoach() {
     showToast({
       tone: 'success',
       title: 'Prize claimed',
-      message: 'Identity verified and Bole pickup selected. The fulfilment tracker is now live.',
+      message: 'Bole pickup selected. The fulfilment tracker is now live.',
     })
   }
 
@@ -307,13 +296,13 @@ export function GuidedCoach() {
       case 5:
         return {
           eyebrow: 'Claim',
-          title: 'Verify identity and claim',
+          title: 'Claim the prize',
           body: winner
-            ? `Your ${formatETB(winner.amount, 2)} bid won the TV. The demo verifies Selam’s ID and selects Bole pickup, starting the fulfilment tracker.`
+            ? `Your ${formatETB(winner.amount, 2)} bid won the TV. The demo selects Bole pickup, starting the fulfilment tracker.`
             : 'A winner record will appear once the TV auction closes.',
-          cta: 'Verify & choose pickup',
+          cta: 'Choose pickup',
           icon: ShieldCheck,
-          hint: 'Admins can also verify the winner or offer the prize to the next unique bidder.',
+          hint: 'Admins can also offer the prize to the next unique bidder.',
         }
       case 6:
         return {

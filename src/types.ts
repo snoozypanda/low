@@ -14,8 +14,7 @@ export type EntryStatus =
   | 'unspent'
 export type RefundReason = 'void' | 'cancelled' | 'reversed' | 'unspent_credit' | 'max_entries'
 export type RefundStatus = 'pending' | 'processed'
-export type VerificationStatus = 'pending' | 'verified' | 'failed'
-export type FulfilmentStatus = 'none' | 'verified' | 'dispatched' | 'delivered'
+export type FulfilmentStatus = 'none' | 'dispatched' | 'delivered'
 export type FulfilmentMethod = 'delivery' | 'pickup'
 export type NotificationKind = 'entry' | 'closing' | 'won' | 'refund' | 'system' | 'fulfilment' | 'payment'
 export type AuditType =
@@ -38,7 +37,6 @@ export type AuditType =
   | 'refund.created'
   | 'refund.processed'
   | 'fulfilment.updated'
-  | 'identity.verified'
   | 'demo.generated'
 
 export interface User {
@@ -74,8 +72,9 @@ export interface Auction {
   gallery: string[]
   retailValue: number
   entryFee: number
+  views: number
   bidMin: number
-  bidMax: number
+  bidMax?: number
   bidStep: number
   minEntries: number
   maxEntriesPerUser: number
@@ -149,7 +148,6 @@ export interface WinnerRecord {
   entryId: string
   userId: string
   amount: number
-  verification: VerificationStatus
   fulfilment: FulfilmentStatus
   method?: FulfilmentMethod
   address?: string

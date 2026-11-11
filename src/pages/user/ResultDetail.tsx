@@ -158,7 +158,7 @@ export default function ResultDetail() {
               <Trophy className="h-5 w-5" />
               <p className="text-[13px] font-extrabold">{t('congratulations')}</p>
             </div>
-            <p className="mt-1 text-[10.5px] leading-relaxed text-white/80">{t('verifyToClaim')}</p>
+            <p className="mt-1 text-[10.5px] leading-relaxed text-white/80">{t('claimPrompt')}</p>
             <Button
               variant="outlineWhite"
               size="sm"

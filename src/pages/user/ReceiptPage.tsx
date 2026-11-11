@@ -68,7 +68,7 @@ export default function ReceiptPage() {
                 </span>
                 <div>
                   <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-white/70">{t('receipt')}</p>
-                  <p className="text-[11px] font-bold">How Low · {auction.category}</p>
+                  <p className="text-[11px] font-bold">Bidora · {auction.category}</p>
                 </div>
               </div>
               <ReceiptText className="h-5 w-5 text-white/60" />

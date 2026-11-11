@@ -226,7 +226,7 @@ export function AdminLayout() {
         </main>
 
         <footer className="no-print flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-3 text-[9px] text-ink-soft lg:px-6">
-          <span>How Low operations console · demo data only</span>
+          <span>Bidora operations console · demo data only</span>
           <span className="flex items-center gap-3">
             <span className="inline-flex items-center gap-1">
               <ShieldCheck className="h-3 w-3" /> Idempotent payment callbacks

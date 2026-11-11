@@ -1,10 +1,10 @@
-# HowLow Auction Platform - User Guide
+# Bidora Auction Platform - User Guide
 
-Welcome to HowLow, Ethiopia's premier online auction platform where users bid on exciting products with a unique entry-based system!
+Welcome to Bidora, Ethiopia's premier online auction platform where users bid on exciting products with a unique entry-based system!
 
 ## 🎯 Core Concept
 
-HowLow uses a **pay-to-enter** auction model instead of traditional bidding. Users purchase entries (like lottery tickets) for each auction, and the winner is determined by a combination of entry count and bidding strategy.
+Bidora uses a **pay-to-enter** auction model instead of traditional bidding. Users purchase entries (like lottery tickets) for each auction, and the winner is determined by a combination of entry count and bidding strategy.
 
 ## 📋 How It Works
 
@@ -62,7 +62,7 @@ HowLow uses a **pay-to-enter** auction model instead of traditional bidding. Use
 - **Payout Processing**: Handle winner payments and payouts
 - **Audit Logs**: Complete history of all auction activities
 
-## 💡 Why HowLow is Different
+## 💡 Why Bidora is Different
 
 ✅ **Fair Access**: Everyone has equal opportunity regardless of financial status
 ✅ **Risk Management**: Users only pay for entries, not the full retail price
@@ -87,6 +87,6 @@ HowLow uses a **pay-to-enter** auction model instead of traditional bidding. Use
 
 ---
 
-*HowLow Auction Platform v1.0 • Made for Ethiopia, by Ethiopians*
+*Bidora Auction Platform v1.0 • Made for Ethiopia, by Ethiopians*
 
 For support: support@howlow.et | +251 900 000 000

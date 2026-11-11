@@ -53,14 +53,13 @@ const typeTone: Record<string, 'green' | 'red' | 'amber' | 'blue' | 'purple' | '
   'refund.created': 'amber',
   'refund.processed': 'green',
   'fulfilment.updated': 'blue',
-  'identity.verified': 'green',
   'demo.generated': 'dark',
 }
 
 function eventIcon(type: AuditType) {
   if (type.startsWith('payment.')) return Fingerprint
   if (type.startsWith('bid.')) return Gavel
-  if (type.startsWith('winner.') || type.startsWith('identity.') || type.startsWith('fulfilment.')) return ShieldCheck
+  if (type.startsWith('winner.') || type.startsWith('fulfilment.')) return ShieldCheck
   if (type.startsWith('demo.')) return Sparkles
   return History
 }
@@ -299,7 +298,7 @@ export default function AdminAudit() {
             ['Auction lifecycle', 'Created, updated, closed, void and cancelled events.'],
             ['Money movement', 'Payment intents, confirmations, failures, reversals and replays.'],
             ['Sealed bids', 'Hash, lock and invalidation events with the bid receipt.'],
-            ['People & prizes', 'Winner calculation, identity verification, fulfilment and reassignment.'],
+            ['People & prizes', 'Winner calculation, fulfilment and reassignment.'],
           ].map(([title, body]) => (
             <div key={title} className="px-4 py-2.5">
               <p className="text-[10.5px] font-bold text-ink">{title}</p>

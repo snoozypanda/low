@@ -38,7 +38,7 @@ export default function BidPage() {
   const quickAmounts = useMemo(() => {
     if (!auction) return []
     const options = [0.01, 0.05, 0.07, 0.09, 0.12, 0.2].filter(
-      (value) => value >= auction.bidMin && value <= auction.bidMax,
+      (value) => value >= auction.bidMin,
     )
     return [...new Set(options)].slice(0, 5)
   }, [auction])
@@ -95,7 +95,6 @@ export default function BidPage() {
     const value = Number(amount)
     if (!amount.trim() || !Number.isFinite(value)) return t('validateBid')
     if (value < auction.bidMin) return t('bidTooLow')
-    if (value > auction.bidMax) return t('bidTooHigh')
     const steps = Math.round((value - auction.bidMin) / auction.bidStep)
     const snapped = auction.bidMin + steps * auction.bidStep
     if (Math.abs(snapped - value) > 0.000001) return t('bidStepError')
@@ -192,7 +191,7 @@ export default function BidPage() {
             <Field
               label={t('bidAmount')}
               error={error ?? undefined}
-              hint={`${t('bidRangeLabel')}: ETB ${auction.bidMin.toFixed(2)} – ${auction.bidMax.toFixed(2)} · ${t('step')} ${auction.bidStep.toFixed(2)}`}
+              hint={`${t('minBid')}: ETB ${auction.bidMin.toFixed(2)} (${t('noMax')}) · ${t('step')} ${auction.bidStep.toFixed(2)}`}
             >
               <div className="relative">
                 <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-[13px] font-bold text-ink-muted">

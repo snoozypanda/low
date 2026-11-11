@@ -98,7 +98,7 @@ export default function AdminOverview() {
       const entry = entries.find((e) => e.paymentId === p.id)
       return Boolean(entry && !['invalidated', 'refunded', 'void', 'cancelled'].includes(entry.status))
     })
-    const unverifiedWinners = winners.filter((w) => w.verification === 'pending')
+    const unclaimedWinners = winners.filter((w) => w.fulfilment === 'none' && !w.method)
     const mismatches = orphanPayments.length + reversedActive.length + ignoredEvents.length
 
     const days = Array.from({ length: 7 }, (_, index) => {
@@ -164,7 +164,7 @@ export default function AdminOverview() {
       successRate,
       orphanPayments,
       reversedActive,
-      unverifiedWinners,
+      unclaimedWinners,
       mismatches,
       revenueSeries,
       paymentMix,
@@ -193,7 +193,7 @@ export default function AdminOverview() {
       <AdminPageHeader
         eyebrow="Operations overview"
         title="Auction floor"
-        description="Live entry counts, payment health and the next operational actions across the How Low demo."
+        description="Live entry counts, payment health and the next operational actions across the Bidora demo."
         actions={
           <>
             <Button
@@ -386,7 +386,7 @@ export default function AdminOverview() {
             {
               icon: PackageCheck,
               tone: 'bg-[#F1EBFF] text-[#6236B4]',
-              title: `${data.unverifiedWinners.length} winners awaiting ID`,
+              title: `${data.unclaimedWinners.length} winners yet to claim`,
               body: `${data.winners.filter((w) => w.fulfilment === 'dispatched').length} prize dispatched · ${data.winners.filter((w) => w.fulfilment === 'delivered').length} delivered`,
               to: '/admin/fulfilment',
               label: 'Open',
@@ -581,7 +581,7 @@ export default function AdminOverview() {
           <div>
             <p className="text-[12px] font-bold">Everything here is a client-side simulation.</p>
             <p className="mt-0.5 text-[10.5px] leading-relaxed text-white/70">
-              Payment callbacks, SMS notifications, refunds and identity checks are mocked. The auction winner maths is real
+              Payment callbacks, SMS notifications, and refunds are mocked. The auction winner maths is real
               and runs entirely in the browser.
             </p>
           </div>

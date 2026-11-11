@@ -1,16 +1,12 @@
 import {
-  BadgeCheck,
   Box,
   Check,
   CheckCircle2,
   Clock3,
-  IdCard,
   MapPin,
   PackageCheck,
-  ShieldCheck,
   Trophy,
   Truck,
-  UserRoundCheck,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -21,7 +17,6 @@ import {
   Badge,
   Button,
   Card,
-  Checkbox,
   EmptyState,
   Field,
   Input,
@@ -41,13 +36,9 @@ export default function WinnerFlow() {
   const auction = useAuction(id)
   const user = useCurrentUser()
   const winner = useStore((state) => state.winners.find((w) => w.auctionId === id))
-  const verifyWinnerIdentity = useStore((state) => state.verifyWinnerIdentity)
   const setWinnerFulfilmentMethod = useStore((state) => state.setWinnerFulfilmentMethod)
   const { showToast } = useToast()
 
-  const [name, setName] = useState(user?.name ?? '')
-  const [idNumber, setIdNumber] = useState('')
-  const [consent, setConsent] = useState(false)
   const [method, setMethod] = useState<FulfilmentMethod>(winner?.method ?? 'delivery')
   const [address, setAddress] = useState(winner?.address ?? '')
   const [pickup, setPickup] = useState(winner?.pickupLocation ?? t('pickupLocationBole'))
@@ -78,26 +69,10 @@ export default function WinnerFlow() {
     )
   }
 
-  const verified = winner.verification === 'verified'
-  const failed = winner.verification === 'failed'
   const delivered = winner.fulfilment === 'delivered'
   const deadlinePassed = new Date(winner.deadlineAt).getTime() < Date.now()
   const hasMethod = Boolean(winner.method)
   const amount = formatETB(winner.amount, 2)
-
-  const submitIdentity = () => {
-    if (!consent) {
-      setError(t('consent'))
-      return
-    }
-    const result = verifyWinnerIdentity(auction.id, { name, idNumber })
-    if (!result.ok) {
-      setError(result.error ?? t('verifyIdentity'))
-      return
-    }
-    setError(null)
-    showToast({ tone: 'success', title: t('identityVerified'), message: t('chooseMethod') })
-  }
 
   const submitFulfilment = () => {
     const result = setWinnerFulfilmentMethod(
@@ -115,11 +90,10 @@ export default function WinnerFlow() {
   }
 
   const trackerSteps = [
-    { key: 'verified', label: t('verifiedStep'), icon: ShieldCheck },
     { key: 'dispatched', label: t('dispatchedStep'), icon: Truck },
     { key: 'delivered', label: t('deliveredStep'), icon: PackageCheck },
   ] as const
-  const progressIndex = winner.fulfilment === 'delivered' ? 3 : winner.fulfilment === 'dispatched' ? 2 : verified ? 1 : 0
+  const progressIndex = winner.fulfilment === 'delivered' ? 2 : winner.fulfilment === 'dispatched' ? 1 : 0
 
   return (
     <div className="min-h-full bg-page pb-6">
@@ -134,11 +108,6 @@ export default function WinnerFlow() {
             <p className="text-[8px] font-extrabold uppercase tracking-[0.2em] text-white/60">{t('winner')}</p>
             <p className="text-[10px] font-bold text-white/85">{language === 'am' ? auction.titleAm : auction.title}</p>
           </div>
-          {winner.verification === 'verified' ? (
-            <span className="ml-auto inline-flex items-center gap-1 rounded-full bg-white/15 px-2 py-1 text-[8px] font-extrabold uppercase tracking-wide">
-              <BadgeCheck className="h-3 w-3" /> {t('verified')}
-            </span>
-          ) : null}
         </div>
 
         <h1 className="relative mt-4 text-[25px] font-extrabold leading-[1.05] tracking-[-0.05em]">
@@ -154,7 +123,7 @@ export default function WinnerFlow() {
             <p className="text-[32px] font-extrabold leading-none tracking-[-0.05em] amount-tabular">{amount}</p>
           </div>
           <div className="ml-auto rounded-xl bg-white/10 px-2.5 py-1.5 text-right backdrop-blur">
-            <p className="text-[7.5px] font-bold uppercase tracking-[0.12em] text-white/60">{t('verificationDeadline')}</p>
+            <p className="text-[7.5px] font-bold uppercase tracking-[0.12em] text-white/60">{t('claimDeadline')}</p>
             <p className="mt-0.5 text-[10px] font-bold">{formatDateTime(winner.deadlineAt, language)}</p>
           </div>
         </div>
@@ -179,22 +148,15 @@ export default function WinnerFlow() {
           </span>
         </Card>
 
-        {deadlinePassed && !verified ? (
+        {deadlinePassed && !hasMethod ? (
           <AlertBox tone="danger" title={t('claimWindowClosed')}>
-            {t('verifyToClaim')}
+            {t('claimPrompt')}
           </AlertBox>
         ) : null}
 
-        {failed ? (
-          <AlertBox tone="danger" title={t('identityPending')}>
-            {t('verifyToClaim')}
-          </AlertBox>
-        ) : null}
-
-        <div className="grid grid-cols-3 gap-1.5">
+        <div className="grid grid-cols-2 gap-1.5">
           {[
-            { label: t('verifyToClaim'), icon: IdCard, done: verified, current: !verified },
-            { label: t('chooseFulfilment'), icon: Box, done: hasMethod, current: verified && !hasMethod },
+            { label: t('chooseFulfilment'), icon: Box, done: hasMethod, current: !hasMethod },
             { label: t('fulfilmentTracker'), icon: Truck, done: delivered, current: hasMethod && !delivered },
           ].map((step, index) => {
             const Icon = step.icon
@@ -217,51 +179,7 @@ export default function WinnerFlow() {
           })}
         </div>
 
-        {!verified ? (
-          <Card className="p-3.5">
-            <div className="flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-tint text-brand-dark">
-                <UserRoundCheck className="h-4 w-4" />
-              </span>
-              <div>
-                <p className="text-[12.5px] font-bold text-ink">{t('verifyIdentity')}</p>
-                <p className="text-[9.5px] text-ink-muted">{t('verifyToClaim')}</p>
-              </div>
-            </div>
-
-            <div className="mt-3 space-y-2.5">
-              <Field label={t('fullName')} htmlFor="winner-name" required>
-                <Input id="winner-name" value={name} onChange={(event) => setName(event.target.value)} placeholder="Selam Tesfaye" />
-              </Field>
-              <Field label={t('idNumber')} htmlFor="winner-id" hint={t('idHint')} required>
-                <Input
-                  id="winner-id"
-                  inputMode="numeric"
-                  value={idNumber}
-                  onChange={(event) => setIdNumber(event.target.value.replace(/\D/g, '').slice(0, 16))}
-                  placeholder="1234 5678 9012"
-                />
-              </Field>
-              <Checkbox label={t('consent')} checked={consent} onChange={setConsent} />
-              {error ? <AlertBox tone="danger">{error}</AlertBox> : null}
-              <Button
-                size="lg"
-                full
-                disabled={deadlinePassed || failed}
-                leftIcon={<ShieldCheck className="h-4 w-4" />}
-                onClick={submitIdentity}
-              >
-                {t('verifyIdentity')}
-              </Button>
-              <p className="text-center text-[9px] leading-relaxed text-ink-soft">{t('trackerNote')}</p>
-            </div>
-          </Card>
-        ) : (
-          <>
-            <AlertBox tone="success" title={t('identityVerified')}>
-              {t('chooseMethod')}
-            </AlertBox>
-
+        <>
             <Card className="p-3.5">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-[12.5px] font-bold text-ink">{t('chooseFulfilment')}</p>
@@ -350,22 +268,18 @@ export default function WinnerFlow() {
                       <div className="pt-0.5">
                         <p className={cn('text-[11px] font-bold', active || isCurrent ? 'text-ink' : 'text-ink-soft')}>{step.label}</p>
                         <p className="mt-0.5 text-[9px] text-ink-muted">
-                          {step.key === 'verified'
-                            ? winner.verification === 'verified'
-                              ? t('identityVerified')
+                          {step.key === 'dispatched'
+                            ? winner.fulfilment === 'dispatched' || delivered
+                              ? winner.method === 'pickup'
+                                ? t('pickupLocation')
+                                : t('dispatchedStep')
                               : t('awaiting')
-                            : step.key === 'dispatched'
-                              ? winner.fulfilment === 'dispatched' || delivered
-                                ? winner.method === 'pickup'
-                                  ? t('pickupLocation')
-                                  : t('dispatchedStep')
-                                : t('awaiting')
-                              : delivered
-                                ? t('alreadyDelivered')
-                                : t('awaiting')}
+                            : delivered
+                              ? t('alreadyDelivered')
+                              : t('awaiting')}
                         </p>
                       </div>
-                      {index === progressIndex && index < 3 ? (
+                      {index === progressIndex && index < 2 ? (
                         <span className="ml-auto mt-1 flex-none rounded-full bg-brand-tint px-2 py-0.5 text-[7.5px] font-extrabold uppercase tracking-wide text-brand-dark">
                           {t('active')}
                         </span>
@@ -381,12 +295,11 @@ export default function WinnerFlow() {
                 </div>
               ) : null}
             </Card>
-          </>
-        )}
+        </>
 
         <div className="flex items-center justify-center gap-1.5 pb-1 text-[9px] font-medium text-ink-soft">
           <Clock3 className="h-2.5 w-2.5" />
-          {t('verificationDeadline')}: {formatDateTime(winner.deadlineAt, language)}
+          {t('claimDeadline')}: {formatDateTime(winner.deadlineAt, language)}
         </div>
       </div>
     </div>

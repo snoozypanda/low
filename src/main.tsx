@@ -5,8 +5,10 @@ import App from './App'
 import './index.css'
 
 try {
+  localStorage.removeItem('howlow-demo-v3')
   localStorage.removeItem('howlow-demo-v2')
   localStorage.removeItem('howlow-demo-v1')
+  localStorage.removeItem('bidora-demo-v1')
 } catch {}
 
 const root = document.getElementById('root')

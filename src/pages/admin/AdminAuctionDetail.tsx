@@ -63,7 +63,6 @@ export default function AdminAuctionDetail() {
   const generateBotEntries = useStore((s) => s.generateBotEntries)
   const reachMinimum = useStore((s) => s.reachMinimum)
   const processRefunds = useStore((s) => s.processRefunds)
-  const adminVerifyWinner = useStore((s) => s.adminVerifyWinner)
   const advanceFulfilment = useStore((s) => s.advanceFulfilment)
   const failWinnerAndOfferNext = useStore((s) => s.failWinnerAndOfferNext)
   const updateEconomics = useStore((s) => s.updateEconomics)
@@ -279,7 +278,7 @@ export default function AdminAuctionDetail() {
                       <div className="mt-2 space-y-1.5 text-[10.5px]">
                         <Row label="Retail value" value={formatETB(auction.retailValue)} />
                         <Row label="Entry fee" value={formatETB(auction.entryFee)} />
-                        <Row label="Bid range" value={formatBidRange(auction)} />
+                        <Row label="Minimum bid" value={formatBidRange(auction)} />
                         <Row label="Max entries / user" value={String(auction.maxEntriesPerUser)} />
                         <Row label="Entry limit reached" value={`${data.paid.length} / ${auction.minEntries}`} />
                       </div>
@@ -301,7 +300,6 @@ export default function AdminAuctionDetail() {
                             </div>
                           </div>
                           <Row label="Winning bid" value={`ETB ${data.winner.amount.toFixed(2)}`} tone="green" />
-                          <Row label="Verification" value={data.winner.verification === 'verified' ? 'Verified' : data.winner.verification} />
                           <Row label="Fulfilment" value={data.winner.fulfilment} />
                           <Row label="Claim deadline" value={formatDateTime(data.winner.deadlineAt)} />
                           <Link to={`/winner/${auction.id}`} className="mt-1 inline-flex items-center gap-1 text-[9.5px] font-bold text-brand-dark">
@@ -618,21 +616,8 @@ export default function AdminAuctionDetail() {
                       full
                       size="sm"
                       variant="secondary"
-                      leftIcon={<ShieldCheck className="h-3.5 w-3.5" />}
-                      disabled={data.winner.verification === 'verified'}
-                      onClick={() => {
-                        const result = adminVerifyWinner(auction.id)
-                        showToast({ tone: result.ok ? 'success' : 'error', title: result.ok ? 'Winner verified by admin' : 'Could not verify', message: result.error })
-                      }}
-                    >
-                      {data.winner.verification === 'verified' ? 'Identity verified' : 'Verify winner identity'}
-                    </Button>
-                    <Button
-                      full
-                      size="sm"
-                      variant="secondary"
                       leftIcon={<Truck className="h-3.5 w-3.5" />}
-                      disabled={data.winner.verification !== 'verified' || data.winner.fulfilment === 'delivered'}
+                      disabled={data.winner.fulfilment === 'delivered'}
                       onClick={() => {
                         const result = advanceFulfilment(auction.id)
                         showToast({ tone: result.ok ? 'success' : 'error', title: result.ok ? 'Fulfilment advanced' : 'Could not advance', message: result.error })
@@ -654,7 +639,7 @@ export default function AdminAuctionDetail() {
                         })
                       }}
                     >
-                      Fail & offer to next
+                      Offer to next bidder
                     </Button>
                   </>
                 ) : null}
@@ -778,7 +763,7 @@ export default function AdminAuctionDetail() {
 }
 
 function formatBidRange(auction: Auction) {
-  return `${auction.bidMin.toFixed(2)} – ${auction.bidMax.toFixed(2)}`
+  return `from ${auction.bidMin.toFixed(2)} · no max`
 }
 
 function Row({ label, value, tone }: { label: string; value: ReactNode; tone?: 'green' | 'red' }) {

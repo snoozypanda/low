@@ -29,7 +29,6 @@ interface FormState {
   retailValue: string
   entryFee: string
   bidMin: string
-  bidMax: string
   bidStep: string
   minEntries: string
   maxEntriesPerUser: string
@@ -56,7 +55,6 @@ function newDefaults(): FormState {
     retailValue: '10000',
     entryFee: '10',
     bidMin: '0.01',
-    bidMax: '100',
     bidStep: '0.01',
     minEntries: '100',
     maxEntriesPerUser: '3',
@@ -77,7 +75,6 @@ function fromAuction(auction: NonNullable<ReturnType<typeof useAuction>>): FormS
     retailValue: String(auction.retailValue),
     entryFee: String(auction.entryFee),
     bidMin: String(auction.bidMin),
-    bidMax: String(auction.bidMax),
     bidStep: String(auction.bidStep),
     minEntries: String(auction.minEntries),
     maxEntriesPerUser: String(auction.maxEntriesPerUser),
@@ -120,7 +117,6 @@ export default function AdminAuctionForm() {
     retailValue: Number(form.retailValue),
     entryFee: Number(form.entryFee),
     bidMin: Number(form.bidMin),
-    bidMax: Number(form.bidMax),
     bidStep: Number(form.bidStep),
     minEntries: Number(form.minEntries),
     maxEntriesPerUser: Number(form.maxEntriesPerUser),
@@ -142,10 +138,6 @@ export default function AdminAuctionForm() {
     }
     if (!Number.isFinite(numbers.entryFee) || numbers.entryFee <= 0) {
       setError('Entry fee must be greater than zero.')
-      return
-    }
-    if (numbers.bidMin >= numbers.bidMax) {
-      setError('Minimum bid must be below maximum bid.')
       return
     }
     if (!Number.isFinite(numbers.bidStep) || numbers.bidStep <= 0) {
@@ -307,9 +299,6 @@ export default function AdminAuctionForm() {
               <Field label="Minimum bid (ETB)" htmlFor="bidMin">
                 <Input id="bidMin" type="number" min="0" step="0.01" value={form.bidMin} onChange={(event) => set('bidMin', event.target.value)} />
               </Field>
-              <Field label="Maximum bid (ETB)" htmlFor="bidMax">
-                <Input id="bidMax" type="number" min="0.01" step="0.01" value={form.bidMax} onChange={(event) => set('bidMax', event.target.value)} />
-              </Field>
               <Field label="Bid step (ETB)" htmlFor="bidStep">
                 <Input id="bidStep" type="number" min="0.01" step="0.01" value={form.bidStep} onChange={(event) => set('bidStep', event.target.value)} />
               </Field>
@@ -388,9 +377,9 @@ export default function AdminAuctionForm() {
                 <span className="font-bold text-ink amount-tabular">{formatETB(numbers.entryFee || 0)}</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-ink-muted">Bid range</span>
+                <span className="text-ink-muted">Minimum bid</span>
                 <span className="font-bold text-ink amount-tabular">
-                  {formatETB(numbers.bidMin || 0, 2)} – {formatETB(numbers.bidMax || 0, 2)}
+                  {formatETB(numbers.bidMin || 0, 2)} · no max
                 </span>
               </div>
               <div className="flex items-center justify-between">

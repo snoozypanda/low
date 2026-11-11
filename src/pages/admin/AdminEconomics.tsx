@@ -50,7 +50,7 @@ interface EconomicsRow {
 }
 
 const inputFields: Array<{ key: keyof EconomicsInputs; label: string; suffix: string; step?: number; hint?: string }> = [
-  { key: 'productCost', label: 'Product cost', suffix: 'ETB', step: 50, hint: 'What the prize costs How Low.' },
+  { key: 'productCost', label: 'Product cost', suffix: 'ETB', step: 50, hint: 'What the prize costs Bidora.' },
   { key: 'vatPct', label: 'VAT', suffix: '%', step: 0.5, hint: 'Included in the entry fee.' },
   { key: 'paymentFeePct', label: 'Payment fee', suffix: '%', step: 0.1, hint: 'Mobile-money processing fee.' },
   { key: 'refundReservePct', label: 'Refund reserve', suffix: '%', step: 0.1, hint: 'Reserved per entry for refunds.' },

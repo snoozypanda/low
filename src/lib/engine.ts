@@ -54,9 +54,6 @@ export function validateBidAmount(amount: number, auction: Auction): { valid: bo
   if (amount < auction.bidMin) {
     return { valid: false, error: `Minimum bid is ETB ${auction.bidMin.toFixed(2)}.` }
   }
-  if (amount > auction.bidMax) {
-    return { valid: false, error: `Maximum bid is ETB ${auction.bidMax.toFixed(2)}.` }
-  }
   const steps = Math.round((amount - auction.bidMin) / auction.bidStep)
   const snapped = auction.bidMin + steps * auction.bidStep
   if (Math.abs(snapped - amount) > 0.000001) {
@@ -72,7 +69,7 @@ export function validateBidAmount(amount: number, auction: Auction): { valid: bo
 /**
  * Group bids by exact amount. The winner is the lowest amount with a
  * count of exactly one. Ties are eliminated. Excluded entries (e.g. a
- * previous winner who failed verification) are skipped.
+ * previous winner who did not claim the prize) are skipped.
  */
 export function determineWinner(bids: Bid[], excludeEntryIds: string[] = []): WinnerCalculation {
   const excluded = new Set(excludeEntryIds)

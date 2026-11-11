@@ -46,7 +46,7 @@ export interface AuctionDraft {
   retailValue: number
   entryFee: number
   bidMin: number
-  bidMax: number
+  bidMax?: number
   bidStep: number
   minEntries: number
   maxEntriesPerUser: number
@@ -97,6 +97,7 @@ interface StoreState extends DemoState {
   cancelAuction: (auctionId: string) => CloseResult
   fastForwardAuction: (auctionId: string) => CloseResult
   sweepExpiredAuctions: () => void
+  recordAuctionView: (auctionId: string) => void
 
   createAuction: (draft: AuctionDraft) => ActionResult & { auction?: Auction }
   updateAuction: (id: string, patch: Partial<Auction>) => ActionResult
@@ -106,8 +107,6 @@ interface StoreState extends DemoState {
   processRefunds: (auctionId?: string) => { count: number; total: number }
   queueManualRefund: (paymentId: string, reason: RefundReason, note?: string) => ActionResult
   invalidateEntryForReconciliation: (entryId: string, note?: string) => ActionResult
-  verifyWinnerIdentity: (auctionId: string, details: { name: string; idNumber: string }) => ActionResult
-  adminVerifyWinner: (auctionId: string) => ActionResult
   setWinnerFulfilmentMethod: (
     auctionId: string,
     method: FulfilmentMethod,
@@ -402,14 +401,16 @@ export const useStore = create<StoreState>()(
           .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
         if (existingPending) return { ok: true, payment: existingPending, reused: true }
 
-        const paymentById = new Map(state.payments.map((p) => [p.id, p]))
-        const usedEntries = state.entries.filter(
-          (e) => e.auctionId === auctionId && e.userId === user.id && paidEntry(e, paymentById),
-        ).length
-        if (usedEntries >= auction.maxEntriesPerUser) {
+        const alreadyPaid = state.payments.some(
+          (p) =>
+            p.auctionId === auctionId &&
+            p.userId === user.id &&
+            p.status === 'success',
+        )
+        if (alreadyPaid) {
           return {
             ok: false,
-            error: `You have reached the limit of ${auction.maxEntriesPerUser} entries for this auction.`,
+            error: 'You have already paid for this auction. 3 bids are unlocked with your entry.',
           }
         }
 
@@ -525,81 +526,43 @@ export const useStore = create<StoreState>()(
           return { ok: true, entry: duplicateEntry, replayed: true }
         }
 
-        const paymentById = new Map(payments.map((p) => [p.id, p]))
-        const usedEntries = state.entries.filter(
-          (e) => e.auctionId === auction.id && e.userId === payment.userId && paidEntry(e, paymentById),
-        ).length
-
-        const entry: Entry = {
+        const entriesCount = user?.isBot ? 1 : 3
+        const createdEntries: Entry[] = Array.from({ length: entriesCount }).map((_, idx) => ({
           id: uid('ent'),
           auctionId: auction.id,
           userId: payment.userId,
           paymentId: payment.id,
-          createdAt: nowIso(),
-          status: 'active',
+          createdAt: new Date(Date.now() + idx * 50).toISOString(),
+          status: 'active' as const,
           isBot: user?.isBot,
-        }
+        }))
 
         const auditConfirmed = makeAudit({
           auctionId: auction.id,
           type: 'payment.confirmed',
           actor: 'M-PESA simulator',
-          message: `Payment ${payment.ref} confirmed for ETB ${payment.amount}.`,
+          message: `Payment ${payment.ref} confirmed for ETB ${payment.amount} (3 bids unlocked).`,
           meta: { ref: payment.ref, amount: payment.amount },
         })
         const notifications = [...state.notifications]
 
-        if (usedEntries >= auction.maxEntriesPerUser) {
-          const refunds = [...state.refunds]
-          addRefundOnce(refunds, {
-            auctionId: auction.id,
-            paymentId: payment.id,
-            userId: payment.userId,
-            amount: payment.amount,
-            reason: 'max_entries',
-            note: 'Entry limit reached before the payment callback arrived',
-          })
-          const audit = makeAudit({
-            auctionId: auction.id,
-            type: 'refund.created',
-            actor: 'System',
-            message: `Payment ${payment.ref} succeeded but the entry limit was already reached. Refund queued.`,
-          })
-          notifyUser(notifications, user, {
-            kind: 'refund',
-            title: 'Payment refund queued',
-            titleAm: 'ተመላሽ ተመዝግቧል',
-            body: `Your payment succeeded but you had already used all entries for ${auction.title}. A refund has been queued.`,
-            bodyAm: `ክፍያዎ ተሳክቷል ነገር ግን ለ${auction.titleAm} ሁሉንም ግቤቶች ተጠቅመዋል። ተመላሽ ተመዝግቧል።`,
-            sms: true,
-            auctionId: auction.id,
-          })
-          set({
-            payments,
-            refunds,
-            notifications,
-            audit: [...state.audit, auditConfirmed, audit],
-          })
-          return { ok: true, replayed: false }
-        }
-
         notifyUser(notifications, user, {
           kind: 'entry',
-          title: 'Entry confirmed',
-          titleAm: 'ግቤትዎ ተረጋግጧል',
-          body: `Your ETB ${auction.entryFee} entry for ${auction.title} is confirmed. Submit one sealed bid before the window closes.`,
-          bodyAm: `ለ${auction.titleAm} የፈጸሙት ETB ${auction.entryFee} ግቤት ተረጋግጧል። ጊዜው ከመዘጋቱ በፊት አንድ ሚስጥራዊ ጨረታ ያስገቡ።`,
+          title: 'Payment confirmed · 3 bids unlocked',
+          titleAm: 'ክፍያ ተረጋግጧል · 3 ጨረታዎች ተፈቅደዋል',
+          body: `Your ETB ${auction.entryFee} entry fee for ${auction.title} is confirmed. 3 sealed bids are unlocked — submit them before the auction closes.`,
+          bodyAm: `ለ${auction.titleAm} የፈጸሙት ETB ${auction.entryFee} ክፍያ ተረጋግጧል። 3 ሚስጥራዊ ጨረታዎች ተፈቅደዋል — ጨረታው ከመዘጋቱ በፊት ያስገቡ።`,
           sms: true,
           auctionId: auction.id,
         })
 
         set({
           payments,
-          entries: [...state.entries, entry],
+          entries: [...state.entries, ...createdEntries],
           notifications,
           audit: [...state.audit, auditConfirmed],
         })
-        return { ok: true, entry }
+        return { ok: true, entry: createdEntries[0] }
       },
 
       reversePayment: (paymentId) => {
@@ -742,7 +705,7 @@ export const useStore = create<StoreState>()(
           kind: 'entry',
           title: 'Sealed bid locked',
           titleAm: 'ሚስጥራዊ ጨረታዎ ተቆልፏል',
-          body: `Your bid of ETB ${rounded.toFixed(2)} for ${auction.title} is locked and cannot be edited. Keep your receipt hash for verification.`,
+          body: `Your bid of ETB ${rounded.toFixed(2)} for ${auction.title} is locked and cannot be edited. Keep your receipt hash.`,
           bodyAm: `ለ${auction.titleAm} ያስገቡት የ ETB ${rounded.toFixed(2)} ጨረታ ተቆልፏል እና መቀየር አይቻልም። ለማረጋገጫ የደረሰኝ ሃሽዎን ያስቀምጡ።`,
           sms: false,
           auctionId: auction.id,
@@ -993,7 +956,6 @@ export const useStore = create<StoreState>()(
           entryId: winningBid.entryId,
           userId: winningBid.userId,
           amount: winningBid.amount,
-          verification: 'pending',
           fulfilment: 'none',
           deadlineAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
           createdAt: at,
@@ -1028,8 +990,8 @@ export const useStore = create<StoreState>()(
           kind: 'won',
           title: 'Congratulations — you won!',
           titleAm: 'እንኳን ደስ አለዎት — አሸንፈዋል!',
-          body: `Your unique bid of ETB ${winningBid.amount.toFixed(2)} won ${auction.title}. Verify your ID within 7 days to claim it.`,
-          bodyAm: `የ ETB ${winningBid.amount.toFixed(2)} ልዩ ጨረታዎ ${auction.titleAm}ን አሸንፏል። ለመረከብ በ7 ቀናት ውስጥ መታወቂያዎን ያረጋግጡ።`,
+          body: `Your unique bid of ETB ${winningBid.amount.toFixed(2)} won ${auction.title}. Choose delivery or pickup within 7 days to claim it.`,
+          bodyAm: `የ ETB ${winningBid.amount.toFixed(2)} ልዩ ጨረታዎ ${auction.titleAm}ን አሸንፏል። ለመረከብ በ7 ቀናት ውስጥ ማድረስ ወይም መረከብ ይምረጡ።`,
           sms: true,
           auctionId,
         })
@@ -1159,12 +1121,19 @@ export const useStore = create<StoreState>()(
         }
       },
 
+      recordAuctionView: (auctionId) => {
+        set((state) => ({
+          auctions: state.auctions.map((a) =>
+            a.id === auctionId ? { ...a, views: (a.views ?? 0) + 1 } : a,
+          ),
+        }))
+      },
+
       createAuction: (draft) => {
         const state = get()
         if (!draft.title.trim()) return { ok: false, error: 'Product name is required.' }
         if (draft.retailValue <= 0) return { ok: false, error: 'Retail value must be greater than zero.' }
         if (draft.entryFee <= 0) return { ok: false, error: 'Entry fee must be greater than zero.' }
-        if (draft.bidMin >= draft.bidMax) return { ok: false, error: 'Minimum bid must be below maximum bid.' }
         if (draft.minEntries < 1) return { ok: false, error: 'Minimum entries must be at least 1.' }
         if (draft.maxEntriesPerUser < 1) return { ok: false, error: 'Max entries per user must be at least 1.' }
         if (new Date(draft.startAt).getTime() >= new Date(draft.endAt).getTime()) {
@@ -1178,6 +1147,7 @@ export const useStore = create<StoreState>()(
         const auction: Auction = {
           ...draft,
           id,
+          views: 0,
           status: statusFromDates(draft.startAt, draft.endAt),
           createdAt: nowIso(),
           economics: {
@@ -1264,8 +1234,8 @@ export const useStore = create<StoreState>()(
             kind: 'refund',
             title: `Refund issued — ${formatETB(refund.amount, 2)}`,
             titleAm: `ተመላሽ ተደርጓል — ${formatETB(refund.amount, 2)}`,
-            body: `Your refund for ${auction?.title ?? 'an auction'} has been paid into your How Low wallet.`,
-            bodyAm: `ለ${auction?.titleAm ?? 'ጨረታ'} የሚደረግ ተመላሽ ወደ How Low ኪስ ቦርሳዎ ተከፍሏል።`,
+            body: `Your refund for ${auction?.title ?? 'an auction'} has been paid into your Bidora wallet.`,
+            bodyAm: `ለ${auction?.titleAm ?? 'ጨረታ'} የሚደረግ ተመላሽ ወደ Bidora ኪስ ቦርሳዎ ተከፍሏል።`,
             sms: true,
             auctionId: refund.auctionId,
           })
@@ -1415,70 +1385,10 @@ export const useStore = create<StoreState>()(
         return { ok: true }
       },
 
-      verifyWinnerIdentity: (auctionId, details) => {
-        const state = get()
-        const winner = state.winners.find((w) => w.auctionId === auctionId)
-        if (!winner) return { ok: false, error: 'Winner record not found.' }
-        if (!details.name.trim() || !details.idNumber.trim()) {
-          return { ok: false, error: 'Enter your full name and ID number.' }
-        }
-        if (!/^\d{8,16}$/.test(details.idNumber.replace(/\s/g, ''))) {
-          return { ok: false, error: 'Enter a valid ID number (8–16 digits).' }
-        }
-        const at = nowIso()
-        const winners = state.winners.map((w) =>
-          w.auctionId === auctionId
-            ? { ...w, verification: 'verified' as const, fulfilment: 'verified' as const, updatedAt: at }
-            : w,
-        )
-        const user = state.users.find((u) => u.id === winner.userId)
-        const notifications = [...state.notifications]
-        notifyUser(notifications, user, {
-          kind: 'fulfilment',
-          title: 'Identity verified',
-          titleAm: 'መታወቂያዎ ተረጋግጧል',
-          body: 'Your identity is verified. Choose delivery or pickup to finish claiming your prize.',
-          bodyAm: 'መታወቂያዎ ተረጋግጧል። ሽልማትዎን ለመረከብ ማድረስ ወይም መረከብ ይምረጡ።',
-          sms: false,
-          auctionId,
-        })
-        const audit = makeAudit({
-          auctionId,
-          type: 'identity.verified',
-          actor: `User · ${user?.name ?? 'Winner'}`,
-          message: `Identity verified for ${details.name}; ID ending ${details.idNumber.slice(-4)}.`,
-        })
-        set({ winners, notifications, audit: [...state.audit, audit] })
-        return { ok: true }
-      },
-
-      adminVerifyWinner: (auctionId) => {
-        const state = get()
-        const winner = state.winners.find((w) => w.auctionId === auctionId)
-        if (!winner) return { ok: false, error: 'Winner record not found.' }
-        const at = nowIso()
-        const winners = state.winners.map((w) =>
-          w.auctionId === auctionId
-            ? { ...w, verification: 'verified' as const, fulfilment: 'verified' as const, updatedAt: at }
-            : w,
-        )
-        const audit = makeAudit({
-          auctionId,
-          type: 'identity.verified',
-          actor: 'Admin · Sara M.',
-          message: 'Winner identity verified by the admin team.',
-        })
-        set({ winners, audit: [...state.audit, audit] })
-        return { ok: true }
-      },
-
       setWinnerFulfilmentMethod: (auctionId, method, address, pickupLocation) => {
         const state = get()
         const winner = state.winners.find((w) => w.auctionId === auctionId)
         if (!winner) return { ok: false, error: 'Winner record not found.' }
-        if (winner.verification !== 'verified') {
-          return { ok: false, error: 'Verify your identity before choosing fulfilment.' }
-        }
         if (method === 'delivery' && !address?.trim()) {
           return { ok: false, error: 'Enter a delivery address.' }
         }
@@ -1511,17 +1421,12 @@ export const useStore = create<StoreState>()(
         const state = get()
         const winner = state.winners.find((w) => w.auctionId === auctionId)
         if (!winner) return { ok: false, error: 'Winner record not found.' }
-        if (winner.verification !== 'verified') {
-          return { ok: false, error: 'Verify the winner before advancing fulfilment.' }
-        }
         const next: FulfilmentStatus | null =
-          winner.fulfilment === 'verified'
+          winner.fulfilment === 'none'
             ? 'dispatched'
             : winner.fulfilment === 'dispatched'
               ? 'delivered'
-              : winner.fulfilment === 'none'
-                ? 'verified'
-                : null
+              : null
         if (!next) return { ok: false, error: 'This prize is already delivered.' }
         const at = nowIso()
         const winners = state.winners.map((w) =>
@@ -1532,30 +1437,16 @@ export const useStore = create<StoreState>()(
         const notifications = [...state.notifications]
         notifyUser(notifications, user, {
           kind: 'fulfilment',
-          title:
-            next === 'verified'
-              ? 'Fulfilment started'
-              : next === 'dispatched'
-                ? 'Your prize has been dispatched'
-                : 'Your prize has been delivered',
-          titleAm:
-            next === 'verified'
-              ? 'ማድረስ ተጀምሯል'
-              : next === 'dispatched'
-                ? 'ሽልማትዎ ተልኳል'
-                : 'ሽልማትዎ ደርሷል',
+          title: next === 'dispatched' ? 'Your prize has been dispatched' : 'Your prize has been delivered',
+          titleAm: next === 'dispatched' ? 'ሽልማትዎ ተልኳል' : 'ሽልማትዎ ደርሷል',
           body:
-            next === 'verified'
-              ? `Fulfilment for ${auction?.title ?? 'your prize'} has started.`
-              : next === 'dispatched'
-                ? `Your prize is on the way. Keep your phone available for the courier.`
-                : `Your prize has been delivered. Thank you for playing How Low.`,
+            next === 'dispatched'
+              ? `Your prize is on the way. Keep your phone available for the courier.`
+              : `Your prize has been delivered. Thank you for playing Bidora.`,
           bodyAm:
-            next === 'verified'
-              ? `የ${auction?.titleAm ?? 'ሽልማትዎ'} ማድረስ ተጀምሯል።`
-              : next === 'dispatched'
-                ? `ሽልማትዎ በመንገድ ላይ ነው። ለአስረካቢው ስልክዎን ይያዙ።`
-                : `ሽልማትዎ ደርሷል። How Low ስለተጫወቱ እናመሰግናለን።`,
+            next === 'dispatched'
+              ? `ሽልማትዎ በመንገድ ላይ ነው። ለአስረካቢው ስልክዎን ይያዙ።`
+              : `ሽልማትዎ ደርሷል። Bidora ስለተጫወቱ እናመሰግናለን።`,
           sms: true,
           auctionId,
         })
@@ -1574,17 +1465,13 @@ export const useStore = create<StoreState>()(
         const state = get()
         const winner = state.winners.find((w) => w.auctionId === auctionId)
         if (!winner) return { ok: false, error: 'Winner record not found.' }
-        const at = nowIso()
-        const winners = state.winners.map((w) =>
-          w.auctionId === auctionId ? { ...w, verification: 'failed' as const, updatedAt: at } : w,
-        )
         const audit = makeAudit({
           auctionId,
-          type: 'identity.verified',
+          type: 'winner.next',
           actor: 'Admin · Sara M.',
-          message: 'Winner failed or did not complete verification within 7 days.',
+          message: 'Winner did not claim the prize within 7 days.',
         })
-        set({ winners, audit: [...state.audit, audit] })
+        set({ audit: [...state.audit, audit] })
         return get().offerToNextWinner(auctionId)
       },
 
@@ -1626,7 +1513,7 @@ export const useStore = create<StoreState>()(
                 userId: entry.userId,
                 amount: p.amount,
                 reason: 'void',
-                note: 'No further unique bid after winner failed verification',
+                note: 'No further unique bid after winner did not claim the prize',
               })
               notifyUser(notifications, userById.get(entry.userId), {
                 kind: 'refund',
@@ -1643,7 +1530,7 @@ export const useStore = create<StoreState>()(
             auctionId,
             type: 'auction.void',
             actor: 'Auction engine',
-            message: 'No further unique bid exists after winner verification failed. Auction VOID and refunds queued.',
+            message: 'No further unique bid exists after the winner did not claim the prize. Auction VOID and refunds queued.',
           })
           set({
             auctions: state.auctions.map((a) =>
@@ -1667,7 +1554,6 @@ export const useStore = create<StoreState>()(
           entryId: next.entryId,
           userId: next.userId,
           amount: next.amount,
-          verification: 'pending',
           fulfilment: 'none',
           deadlineAt: new Date(Date.now() + 7 * 24 * 3600_000).toISOString(),
           createdAt: at,
@@ -1683,8 +1569,8 @@ export const useStore = create<StoreState>()(
           kind: 'won',
           title: 'The prize is yours',
           titleAm: 'ሽልማቱ የእርስዎ ነው',
-          body: `The previous winner could not complete verification. Your unique bid of ETB ${next.amount.toFixed(2)} now wins ${auction.title}. Verify your ID within 7 days.`,
-          bodyAm: `ቀድሞው አሸናፊ ማረጋገጫውን ማጠናቀቅ አልቻለም። የ ETB ${next.amount.toFixed(2)} ልዩ ጨረታዎ አሁን ${auction.titleAm}ን አሸንፏል። በ7 ቀናት ውስጥ መታወቂያዎን ያረጋግጡ።`,
+          body: `The previous winner could not claim the prize in time. Your unique bid of ETB ${next.amount.toFixed(2)} now wins ${auction.title}. Choose delivery or pickup within 7 days.`,
+          bodyAm: `ቀድሞው አሸናፊ ሽልማቱን በጊዜ መረከብ አልቻለም። የ ETB ${next.amount.toFixed(2)} ልዩ ጨረታዎ አሁን ${auction.titleAm}ን አሸንፏል። በ7 ቀናት ውስጥ ማድረስ ወይም መረከብ ይምረጡ።`,
           sms: true,
           auctionId,
         })
@@ -1776,11 +1662,10 @@ export const useStore = create<StoreState>()(
           }
           entries.push(entry)
 
-          let amount = round2(0.13 + Math.random() * Math.max(0.01, auction.bidMax - 0.13))
+          let amount = round2(0.13 + Math.random() * 8.0)
           let guard = 0
           while (reservedAmounts.has(amount.toFixed(2)) && guard++ < 40) {
             amount = round2(amount + 0.01)
-            if (amount > auction.bidMax) amount = round2(auction.bidMin + 0.13)
           }
           const timestamp = new Date(new Date(entry.createdAt).getTime() + 20_000).toISOString()
           const salt = randomSalt(8)
@@ -1889,8 +1774,8 @@ export const useStore = create<StoreState>()(
       },
     }),
     {
-      name: 'howlow-demo-v3',
-      version: 3,
+      name: 'bidora-demo-v2',
+      version: 1,
       migrate: () => createSeedState(),
     },
   ),

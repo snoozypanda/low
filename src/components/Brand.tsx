@@ -12,7 +12,7 @@ export function LogoMark({ className, tone = 'white' }: { className?: string; to
       viewBox="0 0 44 44"
       className={cn('h-9 w-9', className)}
       role="img"
-      aria-label="How Low coin and down arrow mark"
+      aria-label="Bidora coin and arrow mark"
     >
       <circle cx="22" cy="22" r="20" fill={bg} />
       <circle cx="22" cy="22" r="15.5" fill="none" stroke={fg} strokeOpacity="0.28" strokeWidth="1.4" strokeDasharray="2 3" />
@@ -56,7 +56,7 @@ export function Wordmark({
       <LogoMark tone={tone === 'light' ? 'white' : 'green'} className={cn(markSizes, 'logo-coin flex-none')} />
       <div className="leading-none">
         <div className={cn('font-extrabold tracking-[-0.045em]', sizes, tone === 'light' ? 'text-white' : 'text-ink')}>
-          How<span className={tone === 'light' ? 'text-white' : 'text-brand'}>Low</span>
+          Bid<span className={tone === 'light' ? 'text-white' : 'text-brand'}>ora</span>
         </div>
         {showTagline ? (
           <div

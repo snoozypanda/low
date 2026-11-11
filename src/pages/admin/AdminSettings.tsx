@@ -266,7 +266,7 @@ export default function AdminSettings() {
               <li>2. Submit a sealed bid of ETB 0.07.</li>
               <li>3. Reach 500 entries with simulated bidders.</li>
               <li>4. Close the auction and reveal the lowest unique bid.</li>
-              <li>5. Verify the winner, claim the prize and reconcile in admin.</li>
+              <li>5. Claim the prize and reconcile in admin.</li>
             </ol>
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -334,7 +334,6 @@ export default function AdminSettings() {
                   entry_id: winner.entryId,
                   user_id: winner.userId,
                   winning_amount_etb: winner.amount,
-                  verification: winner.verification,
                   fulfilment: winner.fulfilment,
                   method: winner.method ?? '',
                   deadline: winner.deadlineAt,
@@ -395,7 +394,7 @@ export default function AdminSettings() {
                 { name: 'Entries', count: state.entries.length, source: 'Payment callbacks', note: 'Only settled payments create entries.', icon: ReceiptText },
                 { name: 'Sealed bids', count: state.bids.length, source: 'Auction engine', note: 'Each bid has a salted SHA-256 receipt.', icon: ShieldCheck },
                 { name: 'Refunds', count: state.refunds.length, source: 'Void, cancellation, reversal', note: 'Pending and processed payouts to demo wallets.', icon: Undo2 },
-                { name: 'Winner records', count: state.winners.length, source: 'Winner calculation', note: 'Verification and fulfilment state for each prize.', icon: Trophy },
+                { name: 'Winner records', count: state.winners.length, source: 'Winner calculation', note: 'Fulfilment state for each prize.', icon: Trophy },
                 { name: 'Audit events', count: state.audit.length, source: 'Every state change', note: 'Append-only in this client-side demo.', icon: Database },
               ].map((row) => {
                 const Icon = row.icon
@@ -476,7 +475,7 @@ export default function AdminSettings() {
       </Modal>
 
       <p className={cn('text-center text-[9px] text-ink-soft', 'flex items-center justify-center gap-1.5')}>
-        <Settings2 className="h-3 w-3" /> How Low operations console · client-side prototype · demo data only
+        <Settings2 className="h-3 w-3" /> Bidora operations console · client-side prototype · demo data only
       </p>
     </div>
   )

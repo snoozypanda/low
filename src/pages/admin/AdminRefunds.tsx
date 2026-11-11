@@ -111,7 +111,7 @@ export default function AdminRefunds() {
       tone: result.count ? 'success' : 'info',
       title: result.count ? `${result.count} refund${result.count === 1 ? '' : 's'} paid` : 'Nothing to process',
       message: result.count
-        ? `${formatETB(result.total, 2)} credited to How Low wallets via simulated M-PESA.`
+        ? `${formatETB(result.total, 2)} credited to Bidora wallets via simulated M-PESA.`
         : 'There are no pending refunds in this selection.',
     })
   }

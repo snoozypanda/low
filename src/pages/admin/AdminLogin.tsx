@@ -95,7 +95,7 @@ export default function AdminLogin() {
               </h1>
               <p className="mt-5 max-w-[360px] text-[13px] leading-relaxed text-white/70">
                 Monitor live entry counts, reconcile M-PESA callbacks, resolve refunds and move winners through
-                verification and fulfilment — all from one console.
+                fulfilment — all from one console.
               </p>
 
               <div className="mt-8 grid max-w-[400px] grid-cols-2 gap-3">
@@ -103,7 +103,7 @@ export default function AdminLogin() {
                   { icon: Gavel, title: 'Auction control', body: 'Close, fast-forward or cancel with a full audit trail.' },
                   { icon: Wallet, title: 'Payments', body: 'Every callback is idempotent and traceable.' },
                   { icon: BarChart3, title: 'Unit economics', body: 'Contribution margin and break-even per auction.' },
-                  { icon: ShieldCheck, title: 'Fulfilment', body: 'Verify identity, dispatch and confirm delivery.' },
+                  { icon: ShieldCheck, title: 'Fulfilment', body: 'Dispatch and confirm delivery.' },
                 ].map(({ icon: Icon, title, body }) => (
                   <div key={title} className="rounded-xl border border-white/15 bg-white/[0.07] p-3.5 backdrop-blur-sm">
                     <Icon className="h-4 w-4 text-white/80" />
@@ -206,7 +206,7 @@ export default function AdminLogin() {
             </Card>
 
             <p className="mt-4 text-center text-[9px] leading-relaxed text-ink-soft">
-              No official Safaricom or M-PESA branding is used. Payments, SMS and identity checks are simulated.
+              No official Safaricom or M-PESA branding is used. Payments and SMS are simulated.
             </p>
           </div>
         </div>
